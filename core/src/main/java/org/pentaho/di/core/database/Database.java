@@ -2324,8 +2324,11 @@ public class Database implements VariableSpace, LoggingObjectInterface {
       ResultSet rm =
         connection.getMetaData().getColumns( null, schemaName, tableName, null );
 
-      while ( rm.next() ) {
+      if ( fields == null ) {
+        fields = new RowMeta();
+      }
 
+      while ( rm.next() ) {
         ValueMetaInterface valueMeta = null;
         for ( ValueMetaInterface valueMetaClass : valueMetaPluginClasses ) {
           try {
@@ -2341,10 +2344,6 @@ public class Database implements VariableSpace, LoggingObjectInterface {
               log.logDebug( "Skipping ValueMetaInterface:" + valueMetaClass.getClass().getName(), e );
             }
           }
-        }
-
-        if ( fields == null ) {
-          fields = new RowMeta();
         }
         fields.addValueMeta( valueMeta );
       }
@@ -3148,9 +3147,16 @@ public class Database implements VariableSpace, LoggingObjectInterface {
     if ( dbmd == null ) {
       try {
         log.snap( Metrics.METRIC_DATABASE_GET_DBMETA_START, databaseMeta.getName() );
+
+        if ( connection == null ) {
+          throw new KettleDatabaseException( BaseMessages.getString( PKG,
+            "Database.Exception.EmptyConnectionError", databaseMeta.getDatabaseName() ) );
+        }
+
         dbmd = connection.getMetaData(); // Only get the metadata once!
       } catch ( Exception e ) {
-        throw new KettleDatabaseException( "Unable to get database metadata from this database connection", e );
+        throw new KettleDatabaseException( BaseMessages.getString( PKG,
+          "Database.Exception.UnableToGetMetadata" ), e );
       } finally {
         log.snap( Metrics.METRIC_DATABASE_GET_DBMETA_STOP, databaseMeta.getName() );
       }
